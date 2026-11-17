@@ -1,0 +1,317 @@
+import React, { useState } from 'react';
+import { Language } from '../../types';
+import {
+  MODELLED_KHOROO_COUNT,
+  SAMPLE_INCIDENT_COUNT,
+  TOTAL_HISTORICAL_INCIDENTS,
+  TOTAL_KHOROO_COUNT,
+} from '../../data/ubGeoData';
+import { useLiveWeather } from '../../hooks/liveWeather';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { useAdminToken } from '../../utils/adminSession';
+import { AdminDataGate } from './AdminDataGate';
+
+interface DataSourcesModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  language: Language;
+}
+
+export const DataSourcesModal: React.FC<DataSourcesModalProps> = ({
+  isOpen,
+  onClose,
+  language,
+}) => {
+  const [activeTab, setActiveTab] = useState<'sources' | 'quality' | 'demo' | 'admin'>('sources');
+  const adminToken = useAdminToken();
+  const live = useLiveWeather();
+  const modelledShare = Math.round((MODELLED_KHOROO_COUNT / TOTAL_KHOROO_COUNT) * 100);
+
+  useEscapeKey(isOpen, onClose);
+
+  if (!isOpen) return null;
+
+  const sourcesList = [
+    {
+      nameMn: 'Нийслэлийн Онцгой байдлын газар (ОБЕГ)',
+      nameEn: 'National Emergency Management Agency (NEMA)',
+      datasetMn: 'Гал түймрийн дуудлагын орон зайн түүх ба ангиудын байршил',
+      datasetEn: 'Historical Fire Call Logs & Station Geometries',
+      period: '2022–2026',
+      coverageMn: 'Нийслэлийн 9 дүүрэг, 204 хороо',
+      coverageEn: '9 UB Districts, 204 Khoroos',
+      limitationsMn: 'Зарим алслагдсан хороодын хувьд гудамжны хаягжилт дутуу тул дүүргийн төв цэгээр ойролцоолсон.',
+      limitationsEn: 'Certain peripheral unplanned settlements rely on centroid approximations due to non-standard street naming.',
+      verified: true,
+    },
+    {
+      nameMn: 'Үндэсний Статистикийн Хороо (ҮСХ)',
+      nameEn: 'National Statistics Office of Mongolia (NSO)',
+      datasetMn: 'Хүн ам, орон сууц, гэр хорооллын өрхийн суурь судалгаа',
+      datasetEn: 'Population & Housing Census, Ger Settlement Metrics',
+      period: '2024–2025',
+      coverageMn: 'Улаанбаатар хот 100%',
+      coverageEn: 'Ulaanbaatar 100%',
+      limitationsMn: 'Жил бүрийн шилжилт хөдөлгөөний улмаас түр оршин суугчдын тоо 5-8% зөрүүтэй байх магадлалтай.',
+      limitationsEn: 'Seasonal migration induces potential 5-8% deviation in temporary unregistered resident estimates.',
+      verified: true,
+    },
+    {
+      nameMn: 'Цаг уур, орчны шинжилгээний газар (ЦУОШГ)',
+      nameEn: 'National Agency for Meteorology & Environmental Monitoring (NAMEM)',
+      datasetMn: 'Агаарын температур, харьцангуй чийгшил, салхины дундаж хурд',
+      datasetEn: 'Ambient Temperature, Relative Humidity, Wind Vector Logs',
+      period: '1990–2026',
+      coverageMn: 'УБ-Буянт-Ухаа, Амгалан станцууд',
+      coverageEn: 'Buyant-Ukhaa and Amgalan Meteorological Stations',
+      limitationsMn: 'Хот доторх бичил уур амьсгалын (micro-climate) нарийн ялгааг 100% тусгахгүй.',
+      limitationsEn: 'Does not fully capture micro-climate temperature inversions between river basins and mountain ridges.',
+      verified: true,
+    },
+    {
+      nameMn: 'OpenStreetMap & Shuttle Radar Topography (SRTM)',
+      nameEn: 'OpenStreetMap & SRTM Digital Elevation Data',
+      datasetMn: 'Авто замын ангилал, өндөржлийн налуу, гудамжны өргөн',
+      datasetEn: 'Road Network Graph, Slope Gradient, Lane Widths',
+      period: '2026 Continuous',
+      coverageMn: 'Нийслэлийн нийт замын сүлжээ',
+      coverageEn: 'Full Metropolitan Road Network',
+      limitationsMn: 'Гэр хорооллын шинээр нэмэгдсэн мухар хашаанууд газрын зурагт хоцорч тусдаг.',
+      limitationsEn: 'Newly fenced informal alley closures can experience mapping lag.',
+      verified: true,
+    },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-[3000] flex items-center justify-center p-4 bg-[#0B124D]/60 backdrop-blur-xs"
+      role="dialog"
+      aria-modal="true"
+      aria-label={language === 'mn' ? 'Өгөгдлийн эх сурвалж ба ил тод байдал' : 'Data provenance and governance'}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl border border-[#0B124D]/10 max-h-[90vh] flex flex-col overflow-hidden animate-pop-in">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-[#0B124D]/10">
+          <div>
+            <span className="text-[10px] font-mono font-bold tracking-widest text-[#FF633C] uppercase block mb-0.5">
+              FIREWATCH UB · GOVERNANCE
+            </span>
+            <h3 className="font-editorial text-2xl font-bold text-[#0B124D]">
+              {language === 'mn' ? 'Өгөгдлийн эх сурвалж ба ил тод байдал' : 'Data Provenance & Governance'}
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={language === 'mn' ? 'Хаах' : 'Close'}
+            className="w-9 h-9 rounded-full bg-[#F7F8FA] hover:bg-slate-200 text-[#72778A] hover:text-[#0B124D] flex items-center justify-center font-bold"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-2 pt-4 pb-2 border-b border-slate-100 overflow-x-auto text-xs font-semibold">
+          <button
+            onClick={() => setActiveTab('sources')}
+            className={`px-3 py-1.5 rounded-lg transition-colors ${
+              activeTab === 'sources'
+                ? 'bg-[#0B124D] text-white'
+                : 'text-[#72778A] hover:text-[#0B124D]'
+            }`}
+          >
+            {language === 'mn' ? 'Эх сурвалжууд' : 'Sources'}
+          </button>
+          <button
+            onClick={() => setActiveTab('quality')}
+            className={`px-3 py-1.5 rounded-lg transition-colors ${
+              activeTab === 'quality'
+                ? 'bg-[#0B124D] text-white'
+                : 'text-[#72778A] hover:text-[#0B124D]'
+            }`}
+          >
+            {language === 'mn' ? 'Өгөгдлийн чанар' : 'Data Quality'}
+          </button>
+          <button
+            onClick={() => setActiveTab('demo')}
+            className={`px-3 py-1.5 rounded-lg transition-colors ${
+              activeTab === 'demo'
+                ? 'bg-[#FF633C] text-white'
+                : 'text-[#72778A] hover:text-[#0B124D]'
+            }`}
+          >
+            {language === 'mn' ? 'Жишээ горим (Demo)' : 'Demo Mode Policy'}
+          </button>
+          {adminToken && (
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`px-3 py-1.5 rounded-lg transition-colors ${
+                activeTab === 'admin'
+                  ? 'bg-[#0B124D] text-white'
+                  : 'text-[#72778A] hover:text-[#0B124D]'
+              }`}
+            >
+              {language === 'mn' ? 'Өгөгдлийн удирдлага' : 'Data Management'}
+            </button>
+          )}
+        </div>
+
+        {/* Modal Scrollable Body */}
+        <div className="flex-1 overflow-y-auto py-4 space-y-4 text-xs">
+          
+          {/* TAB 1: Sources */}
+          {activeTab === 'sources' && (
+            <div className="space-y-4">
+              {sourcesList.map((s, idx) => (
+                <div key={idx} className="p-4 rounded-xl bg-[#F7F8FA] border border-[#0B124D]/5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-[#0B124D]">
+                      {language === 'mn' ? s.nameMn : s.nameEn}
+                    </span>
+                    <span className="font-mono text-[10px] text-[#12B89A] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      ✓ {language === 'mn' ? 'Баталгаажсан' : 'Verified'}
+                    </span>
+                  </div>
+                  <p className="text-[#0B124D] font-medium">
+                    {language === 'mn' ? s.datasetMn : s.datasetEn}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] text-[#72778A]">
+                    <div>
+                      <b>{language === 'mn' ? 'Хамрах хугацаа' : 'Period'}:</b> {s.period}
+                    </div>
+                    <div>
+                      <b>{language === 'mn' ? 'Хамрах хүрээ' : 'Coverage'}:</b> {language === 'mn' ? s.coverageMn : s.coverageEn}
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-amber-800 bg-amber-50 p-2 rounded border border-amber-100 italic">
+                    <b>{language === 'mn' ? 'Хязгаарлалт' : 'Limitations'}:</b> {language === 'mn' ? s.limitationsMn : s.limitationsEn}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* TAB 2: Quality */}
+          {activeTab === 'quality' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3 bg-[#F7F8FA] rounded-xl border border-slate-200">
+                  <span className="text-[10px] text-[#72778A] block">
+                    {language === 'mn' ? 'Дүүргийн дуудлагын нэгтгэл' : 'Aggregated district call log'}
+                  </span>
+                  <span className="font-mono text-lg font-bold text-[#0B124D]">
+                    {TOTAL_HISTORICAL_INCIDENTS.toLocaleString()}
+                  </span>
+                </div>
+                <div className="p-3 bg-[#F7F8FA] rounded-xl border border-slate-200">
+                  <span className="text-[10px] text-[#72778A] block">
+                    {language === 'mn' ? 'Дэлгэрэнгүй дүрслэлийн бичлэг' : 'Detailed incident records'}
+                  </span>
+                  <span className="font-mono text-lg font-bold text-[#0B124D]">{SAMPLE_INCIDENT_COUNT}</span>
+                </div>
+                <div className="p-3 bg-[#F7F8FA] rounded-xl border border-slate-200">
+                  <span className="text-[10px] text-[#72778A] block">
+                    {language === 'mn' ? 'Загварчилсан хороо' : 'Modelled khoroos'}
+                  </span>
+                  <span className="font-mono text-lg font-bold text-[#FF633C]">
+                    {modelledShare}%
+                  </span>
+                  <span className="text-[10px] text-[#72778A] block">
+                    {MODELLED_KHOROO_COUNT}/{TOTAL_KHOROO_COUNT} {language === 'mn' ? 'хороо' : 'khoroos'}
+                  </span>
+                </div>
+                <div className="p-3 bg-[#F7F8FA] rounded-xl border border-slate-200">
+                  <span className="text-[10px] text-[#72778A] block">
+                    {language === 'mn' ? 'Цаг агаарын шинэчлэл' : 'Weather refresh'}
+                  </span>
+                  <span className="font-mono text-xs font-bold text-[#0B124D]">{live.lastUpdated}</span>
+                  <span className="text-[10px] text-[#72778A] block">
+                    {live.status === 'live'
+                      ? `${live.provider} · LIVE`
+                      : live.status === 'stale'
+                      ? language === 'mn'
+                        ? 'Кэш өгөгдөл (Open-Meteo)'
+                        : 'Cached observation (stale)'
+                      : live.status === 'loading'
+                      ? language === 'mn'
+                        ? 'Холбогдож байна…'
+                        : 'Connecting…'
+                      : language === 'mn'
+                      ? 'Станц холбогдоогүй'
+                      : 'Station feed unavailable'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-[#72778A] leading-relaxed">
+                <span className="font-bold text-[#0B124D] block mb-1">
+                  {language === 'mn' ? 'Өгөгдлийн бүрэн бүтэн байдлын дүрэм:' : 'Data integrity rule:'}
+                </span>
+                <p>
+                  {language === 'mn'
+                    ? '"Энэ хэсгийн өгөгдөл хангалтгүй тул эрсдэлийн үзүүлэлт хязгаарлагдмал байна." Хэрэв дүүргийн аль нэг хороонд замын координат эсвэл халаалтын бүртгэл дутуу байвал бид хийсвэрээр таамаглахгүй бөгөөд тухайн бүсийг хязгаарлагдмал өгөгдөлтэй гэж тэмдэглэдэг.'
+                    : '"Insufficient coverage for this area, so the risk indicator is flagged as limited." If a khoroo is missing road coordinates or heating records we do not guess — the area is labelled as carrying partial data instead.'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: Demo Mode Policy */}
+          {activeTab === 'demo' && (
+            <div className="space-y-4">
+              <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 space-y-3">
+                <div className="flex items-center gap-2 font-bold text-sm">
+                  <span>🛡️</span>
+                  <span>DEMO DATA & TRANSITION READY ARCHITECTURE</span>
+                </div>
+                <p className="leading-relaxed text-xs">
+                  {language === 'mn'
+                    ? 'Бид хэзээ ч бодит бус тоо баримтыг албан ёсны мэт худал мэдээлэхгүй. Албан ёсны төрийн байгууллагын API бүрэн холбогдох хүртэл бүх жишээ өгөгдлийг ЖИШЭЭ ӨГӨГДӨЛ / DEMO MODE гэж тод тэмдэглэдэг.'
+                    : 'We never fabricate production metrics invisibly. Until official agency dispatch APIs are provisioned, all demonstration sets are clearly quarantined under DEMO DATA.'}
+                </p>
+                <p className="text-xs">
+                  {language === 'mn'
+                    ? 'Аппликэйшны арын архитектур нь ОБЕГ эсвэл хотын захиргааны бодит мэдээллийн сантай шууд холбогдоход интерфэйсийг дахин өөрчлөх шаардлагагүйгээр бүтээгдсэн.'
+                    : 'The backend architecture is built so that connecting a live NEMA or city hall data source requires no interface rewrite.'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: Admin-Gated Data Management */}
+          {activeTab === 'admin' && <AdminDataGate language={language} />}
+
+        </div>
+
+        {/* Footer */}
+        <div className="pt-4 border-t border-[#0B124D]/10 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-mono text-[#72778A]">
+              FireWatch UB Open Data Protocol
+            </span>
+            {!adminToken && activeTab !== 'admin' && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('admin')}
+                className="text-[11px] font-mono text-[#72778A] hover:text-[#0B124D] underline"
+              >
+                {language === 'mn' ? 'Админ нэвтрэх' : 'Admin access'}
+              </button>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="px-5 py-2 bg-[#0B124D] text-white rounded-xl text-xs font-bold hover:bg-[#11166B] transition-colors"
+          >
+            {language === 'mn' ? 'Хаах' : 'Close'}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+};
